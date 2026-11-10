@@ -1,0 +1,115 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+
+  --color-ink-600: #27354f;
+  --color-ink-700: #1b2740;
+  --color-ink-800: #111a2e;
+  --color-ink-900: #0b1220;
+  --color-ink-950: #070d18;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-100 font-sans text-slate-800 antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(203 213 225) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgb(203 213 225);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(148 163 184);
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-500;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-white ring-1 ring-slate-200/80;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 12px 28px -18px rgb(15 23 42 / 0.25);
+  }
+
+  .card-flat {
+    @apply rounded-2xl bg-white ring-1 ring-slate-200/80;
+  }
+
+  .label {
+    @apply mb-1.5 block text-[13px] font-medium text-slate-600;
+  }
+
+  .field {
+    @apply w-full rounded-xl border-0 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 transition placeholder:text-slate-400 hover:ring-slate-300 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none;
+  }
+
+  .field-error {
+    @apply ring-2 ring-rose-400 focus:ring-rose-500;
+  }
+
+  .th {
+    @apply px-4 py-3 text-left text-[11px] font-semibold tracking-[0.08em] whitespace-nowrap text-slate-500 uppercase;
+  }
+
+  .td {
+    @apply px-4 py-3 align-middle text-sm text-slate-700;
+  }
+
+  .animate-rise {
+    animation: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-pulse,
+  .animate-spin {
+    animation: none !important;
+  }
+}
