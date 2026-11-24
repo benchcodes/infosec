@@ -7,9 +7,18 @@
     <meta name="theme-color" content="#0b1220" />
     <meta
       name="description"
-      content="CulubongAbad is a small-business inventory management workspace with stock tracking, reorder alerts, purchase orders, role-based access, and a full audit trail."
+      content="Silog Express is a meal ordering and inventory system for silog meals, drinks, stock tracking, and order management."
     />
-    <title>CulubongAbad — Inventory Management</title>
+    <title>Silog Express — Meal Ordering System</title>
+    <script>
+      // Apply the saved theme before first paint so the page never flashes light.
+      try {
+        var savedTheme = localStorage.getItem("stockpilot.theme");
+        if (savedTheme !== "light") document.documentElement.classList.add("dark");
+      } catch (e) {
+        /* storage blocked — dark stays the default */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

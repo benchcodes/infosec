@@ -36,14 +36,27 @@ function Toggle({ checked, onChange, label, description }) {
 }
 
 export default function Settings() {
-  const { session, setSession, resetData, movements } = useData();
+  const {
+    session,
+    setSession,
+    resetData,
+    movements,
+    users,
+    updateUser,
+    updatePassword,
+  } = useData();
   const { toast } = useToast();
 
   const [profile, setProfile] = useState({ name: session.name, email: session.email });
   const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
   const [errors, setErrors] = useState({});
-  const [mfa, setMfa] = useState(true);
-  const [alerts, setAlerts] = useState({ lowStock: true, orders: true, weekly: false });
+  const currentUser = users.find((user) => user.email === session.email);
+  const [mfa, setMfa] = useState(currentUser?.mfa ?? true);
+  const [alerts, setAlerts] = useState({
+    lowStock: currentUser?.preferences?.lowStock ?? true,
+    orders: currentUser?.preferences?.orders ?? true,
+    weekly: currentUser?.preferences?.weekly ?? false,
+  });
   const [resetOpen, setResetOpen] = useState(false);
 
   const saveProfile = (event) => {
@@ -54,11 +67,14 @@ export default function Settings() {
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
-    setSession({ ...session, name: profile.name.trim(), email: profile.email.trim() });
+    const name = profile.name.trim();
+    const email = profile.email.trim().toLowerCase();
+    if (currentUser) updateUser(currentUser.id, { name, email });
+    setSession({ ...session, name, email });
     toast({ title: "Profile saved", description: "Your account details were updated" });
   };
 
-  const savePassword = (event) => {
+  const savePassword = async (event) => {
     event.preventDefault();
     const next = {};
     if (!passwords.current) next.current = "Enter your current password.";
@@ -67,11 +83,16 @@ export default function Settings() {
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
-    setPasswords({ current: "", next: "", confirm: "" });
-    toast({
-      title: "Password changed",
-      description: "Other sessions would be signed out in a live environment",
-    });
+    try {
+      await updatePassword(session.email, passwords.current, passwords.next);
+      setPasswords({ current: "", next: "", confirm: "" });
+      toast({
+        title: "Password changed",
+        description: "Your MongoDB account password was updated",
+      });
+    } catch (error) {
+      setErrors({ current: error.message ?? "Could not change the password." });
+    }
   };
 
   const lastMovement = movements[0];
@@ -96,7 +117,7 @@ export default function Settings() {
               </span>
               <div>
                 <p className="text-sm font-medium text-slate-900">{profile.name || "Unnamed user"}</p>
-                <p className="text-xs text-slate-500">{session.role} · CTINASSL</p>
+                <p className="text-xs text-slate-500">                {session.role} · Silog Express</p>
                 <Badge tone="emerald" className="mt-1.5">
                   Verified account
                 </Badge>
@@ -198,19 +219,31 @@ export default function Settings() {
                 label="Low stock alerts"
                 description="Email me when an item hits its reorder point."
                 checked={alerts.lowStock}
-                onChange={(value) => setAlerts({ ...alerts, lowStock: value })}
+                onChange={(value) => {
+                  const next = { ...alerts, lowStock: value };
+                  setAlerts(next);
+                  if (currentUser) updateUser(currentUser.id, { preferences: next });
+                }}
               />
               <Toggle
                 label="Purchase order updates"
                 description="Notify me when an order is sent, received, or cancelled."
                 checked={alerts.orders}
-                onChange={(value) => setAlerts({ ...alerts, orders: value })}
+                onChange={(value) => {
+                  const next = { ...alerts, orders: value };
+                  setAlerts(next);
+                  if (currentUser) updateUser(currentUser.id, { preferences: next });
+                }}
               />
               <Toggle
                 label="Weekly summary"
                 description="A Monday digest of stock movement and valuation."
                 checked={alerts.weekly}
-                onChange={(value) => setAlerts({ ...alerts, weekly: value })}
+                onChange={(value) => {
+                  const next = { ...alerts, weekly: value };
+                  setAlerts(next);
+                  if (currentUser) updateUser(currentUser.id, { preferences: next });
+                }}
               />
             </div>
           </section>
@@ -229,6 +262,7 @@ export default function Settings() {
                 checked={mfa}
                 onChange={(value) => {
                   setMfa(value);
+                  if (currentUser) updateUser(currentUser.id, { mfa: value });
                   toast({
                     title: value ? "MFA enabled" : "MFA disabled",
                     description: value
@@ -248,7 +282,7 @@ export default function Settings() {
                   <span className="text-emerald-600">This device</span>
                 </li>
                 <li className="flex items-center justify-between gap-2">
-                  <span className="text-slate-600">Android · CulubongAbad app</span>
+                  <span className="text-slate-600">Android · Silog Express app</span>
                   <span className="text-slate-400">{formatDateTime(lastMovement?.at)}</span>
                 </li>
               </ul>

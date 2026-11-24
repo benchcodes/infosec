@@ -1,10 +1,70 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DataContext } from "./data-context";
 import { seedState } from "./seed";
-import { fetchState, pushCollection } from "./api";
+import { changePassword, createCustomerOrder, fetchState, login, pushCollection } from "./api";
+import { localLogin } from "./auth";
+import { nextCode } from "./metrics";
 
-const STORAGE_KEY = "stockpilot.state.v1";
-const COLLECTIONS = ["products", "suppliers", "movements", "orders", "users", "audit"];
+const STORAGE_KEY = "silogexpress.state.v1";
+const SESSION_KEY = "silogexpress.session.v1";
+const COLLECTIONS = [
+  "products",
+  "suppliers",
+  "movements",
+  "orders",
+  "customerOrders",
+  "users",
+  "audit",
+];
+
+function cleanState(parsed) {
+  const silogProducts = Array.isArray(parsed?.products)
+    ? parsed.products.filter(
+        (product) =>
+          typeof product?.sku === "string" &&
+          (product.sku.toUpperCase().startsWith("SL-") ||
+            ["Tapsilog", "Tocilog", "Longsilog", "Chicksilog", "Bangsilog"].includes(product.name)),
+      )
+    : [];
+  const products = silogProducts.length > 0 ? silogProducts : seedState.products;
+  const productIds = new Set(products.map((product) => product.id));
+  const productById = new Map(products.map((product) => [product.id, product]));
+
+  const movements = Array.isArray(parsed?.movements)
+    ? parsed.movements.filter((movement) => productIds.has(movement.productId))
+    : seedState.movements;
+  const orders = Array.isArray(parsed?.orders)
+    ? parsed.orders.map((order) => ({
+        ...order,
+        items: Array.isArray(order.items)
+          ? order.items.filter((line) => productIds.has(line.productId))
+          : [],
+      })).filter((order) => !Array.isArray(order.items) || order.items.length > 0)
+    : seedState.orders;
+  const customerOrders = Array.isArray(parsed?.customerOrders)
+    ? parsed.customerOrders.map((order) => ({
+        ...order,
+        items: Array.isArray(order.items)
+          ? order.items
+              .filter((line) => productIds.has(line.productId))
+              .map((line) => ({
+                ...line,
+                name: productById.get(line.productId)?.name ?? line.name,
+                price: productById.get(line.productId)?.price ?? line.price,
+              }))
+          : [],
+      })).filter((order) => order.items.length > 0)
+    : seedState.customerOrders;
+
+  return {
+    ...seedState,
+    ...parsed,
+    products,
+    movements,
+    orders,
+    customerOrders,
+  };
+}
 
 function loadState() {
   if (typeof window === "undefined") return seedState;
@@ -13,7 +73,7 @@ function loadState() {
     if (!raw) return seedState;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed?.products) || !Array.isArray(parsed?.suppliers)) return seedState;
-    return { ...seedState, ...parsed };
+    return cleanState(parsed);
   } catch {
     return seedState;
   }
@@ -24,34 +84,66 @@ function uid(prefix) {
   return `${prefix}_${random}`;
 }
 
-const DEFAULT_SESSION = {
-  name: "Maria Santos",
-  email: "maria.santos@ctinassl.ph",
-  role: "Administrator",
-};
+function loadSession() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.email && parsed?.role ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 export function DataProvider({ children }) {
   const [state, setState] = useState(loadState);
-  const [session, setSession] = useState(DEFAULT_SESSION);
+  const [session, setSession] = useState(loadSession);
+
+  useEffect(() => {
+    try {
+      if (session) window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      else window.localStorage.removeItem(SESSION_KEY);
+    } catch {
+      /* storage blocked — the session still works in memory */
+    }
+  }, [session]);
 
   // MongoDB is the source of truth when the API is reachable; localStorage stays as an offline cache.
   const [apiOnline, setApiOnline] = useState(false);
   const lastPushed = useRef(null);
+  const pendingPushes = useRef(new Set());
+  const failedPushes = useRef(new Map());
+  const lastMutatedAt = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
-    fetchState()
-      .then((remote) => {
-        if (cancelled) return;
-        lastPushed.current = remote;
-        setState((current) => ({ ...current, ...remote }));
-        setApiOnline(true);
-      })
-      .catch(() => {
-        /* API offline — keep working from the local cache */
-      });
+    let timer;
+
+    const connectToApi = () => {
+      fetchState()
+        .then((remote) => {
+          if (cancelled) return;
+          setApiOnline(true);
+
+          const recentlyMutated = Date.now() - lastMutatedAt.current < 3500;
+          if (pendingPushes.current.size === 0 && !recentlyMutated) {
+            lastPushed.current = remote;
+            setState((current) => cleanState({ ...current, ...remote }));
+          }
+        })
+        .catch(() => {
+          /* API offline — keep working from the local cache and retry */
+          setApiOnline(false);
+        });
+    };
+
+    connectToApi();
+    timer = window.setInterval(connectToApi, 3000);
+
     return () => {
       cancelled = true;
+      if (timer) window.clearInterval(timer);
     };
   }, []);
 
@@ -69,29 +161,85 @@ export function DataProvider({ children }) {
     const timer = setTimeout(() => {
       for (const name of changed) {
         const rows = state[name];
-        lastPushed.current = { ...lastPushed.current, [name]: rows };
-        pushCollection(name, rows).catch((error) => {
-          console.warn(`Could not save ${name} to MongoDB:`, error.message);
-          lastPushed.current = { ...lastPushed.current, [name]: undefined }; // retry on next change
-        });
+        pendingPushes.current.add(name);
+        pushCollection(name, rows)
+          .then(() => {
+            pendingPushes.current.delete(name);
+            failedPushes.current.delete(name);
+            lastPushed.current = { ...lastPushed.current, [name]: rows };
+          })
+          .catch((error) => {
+            console.warn(`Could not save ${name} to MongoDB:`, error.message);
+            failedPushes.current.set(name, rows);
+            lastPushed.current = { ...lastPushed.current, [name]: undefined };
+          });
       }
     }, 400);
     return () => clearTimeout(timer);
   }, [state, apiOnline]);
 
+  useEffect(() => {
+    if (!apiOnline) return undefined;
+
+    const timer = window.setInterval(() => {
+      for (const [name, rows] of failedPushes.current.entries()) {
+        pendingPushes.current.add(name);
+        pushCollection(name, rows)
+          .then(() => {
+            failedPushes.current.delete(name);
+            pendingPushes.current.delete(name);
+            lastPushed.current = { ...lastPushed.current, [name]: rows };
+          })
+          .catch((error) => {
+            console.warn(`Retry saving ${name} to MongoDB failed:`, error.message);
+          });
+      }
+    }, 3000);
+
+    return () => window.clearInterval(timer);
+  }, [apiOnline]);
+
   const log = useCallback(
     (action, detail) => ({
       id: uid("a"),
-      actor: session.name,
+      actor: session?.name,
       action,
       detail,
       at: new Date().toISOString(),
     }),
-    [session.name],
+    [session?.name],
   );
 
   const mutate = useCallback((updater) => {
+    lastMutatedAt.current = Date.now();
     setState((current) => updater(current));
+  }, []);
+
+  const signIn = useCallback(async (email, password) => {
+    try {
+      const user = await login(email, password);
+      setSession(user);
+      return user;
+    } catch (error) {
+      if (error.status) throw error;
+      // Offline demo fallback only; MongoDB-backed accounts require the API.
+      const demo = localLogin(email, password);
+      if (demo) {
+        setSession(demo);
+        return demo;
+      }
+      throw error;
+    }
+  }, []);
+
+  const updatePassword = useCallback(
+    (email, currentPassword, newPassword) =>
+      changePassword(email, currentPassword, newPassword),
+    [],
+  );
+
+  const signOut = useCallback(() => {
+    setSession(null);
   }, []);
 
   const addProduct = useCallback(
@@ -157,7 +305,7 @@ export function DataProvider({ children }) {
         type,
         quantity: amount,
         note: note?.trim() || "No reference provided",
-        user: session.name,
+        user: session?.name,
         at: new Date().toISOString(),
       };
 
@@ -188,7 +336,7 @@ export function DataProvider({ children }) {
 
       return movement;
     },
-    [log, mutate, session.name],
+    [log, mutate, session?.name],
   );
 
   const addSupplier = useCallback(
@@ -273,7 +421,7 @@ export function DataProvider({ children }) {
               type: "in",
               quantity: line.quantity,
               note: `Received via ${order.code}`,
-              user: session.name,
+              user: session?.name,
               at: new Date().toISOString(),
             }))
           : [];
@@ -290,7 +438,7 @@ export function DataProvider({ children }) {
         };
       });
     },
-    [log, mutate, session.name],
+    [log, mutate, session?.name],
   );
 
   const addUser = useCallback(
@@ -331,6 +479,138 @@ export function DataProvider({ children }) {
     [log, mutate],
   );
 
+  const placeOrder = useCallback(
+    ({ items, note }) => {
+      if (!session) throw new Error("Sign in before placing an order.");
+
+      const lines = [];
+      for (const item of items) {
+        const product = state.products.find((entry) => entry.id === item.productId);
+        if (!product) continue;
+        const quantity = Math.max(0, Math.floor(Number(item.quantity) || 0));
+        if (quantity === 0) continue;
+        if (quantity > product.quantity) {
+          throw new Error(`Only ${product.quantity} ${product.unit} of ${product.name} left.`);
+        }
+        lines.push({
+          productId: product.id,
+          name: product.name,
+          price: product.price,
+          quantity,
+        });
+      }
+
+      if (lines.length === 0) throw new Error("Add at least one item before placing the order.");
+
+      const createdAt = new Date().toISOString();
+      const year = new Date().getFullYear();
+      const code = nextCode(
+        `SO-${year}`,
+        state.customerOrders.map((order) => order.code),
+      );
+
+      const order = {
+        id: uid("so"),
+        code,
+        userId: session.email,
+        userName: session?.name,
+        items: lines,
+        total: lines.reduce((sum, line) => sum + line.price * line.quantity, 0),
+        status: "Pending",
+        note: note?.trim() || "",
+        createdAt,
+        updatedAt: createdAt,
+      };
+
+      mutate((current) => ({
+        ...current,
+        customerOrders: [order, ...current.customerOrders],
+        products: current.products.map((product) => {
+          const line = lines.find((entry) => entry.productId === product.id);
+          return line
+            ? {
+                ...product,
+                quantity: Math.max(0, product.quantity - line.quantity),
+                updatedAt: createdAt,
+              }
+            : product;
+        }),
+        movements: [
+          ...lines.map((line) => ({
+            id: uid("m"),
+            productId: line.productId,
+            type: "out",
+            quantity: line.quantity,
+            note: `Customer order ${code}`,
+            user: session?.name,
+            at: createdAt,
+          })),
+          ...current.movements,
+        ],
+        audit: [
+          log("Placed customer order", `${code} — ${lines.length} line(s)`),
+          ...current.audit,
+        ].slice(0, 60),
+      }));
+
+      // Write the order immediately instead of waiting for the collection diff.
+      // This prevents a later remote refresh from replacing the new order.
+      createCustomerOrder(order).catch((error) => {
+        console.warn("Could not immediately save customer order:", error.message);
+      });
+
+      return order;
+    },
+    [log, mutate, session, state.customerOrders, state.products],
+  );
+
+  const setCustomerOrderStatus = useCallback(
+    (id, status) => {
+      mutate((current) => {
+        const order = current.customerOrders.find((item) => item.id === id);
+        if (!order || order.status === status) return current;
+
+        const at = new Date().toISOString();
+        const restoring = status === "Cancelled" && order.status !== "Cancelled";
+
+        const products = restoring
+          ? current.products.map((product) => {
+              const line = order.items.find((item) => item.productId === product.id);
+              return line
+                ? { ...product, quantity: product.quantity + line.quantity, updatedAt: at }
+                : product;
+            })
+          : current.products;
+
+        const restoredMovements = restoring
+          ? order.items.map((line) => ({
+              id: uid("m"),
+              productId: line.productId,
+              type: "in",
+              quantity: line.quantity,
+              note: `Cancelled ${order.code}`,
+              user: session?.name ?? "System",
+              at,
+            }))
+          : [];
+
+        return {
+          ...current,
+          products,
+          movements: [...restoredMovements, ...current.movements],
+          customerOrders: current.customerOrders.map((item) =>
+            item.id === id ? { ...item, status, updatedAt: at } : item,
+          ),
+          audit: [
+            log("Updated customer order", `${order.code} → ${status}`),
+            ...current.audit,
+          ].slice(0, 60),
+        };
+      });
+    },
+    [log, mutate, session],
+  );
+
   const resetData = useCallback(() => {
     setState(seedState);
   }, []);
@@ -338,8 +618,12 @@ export function DataProvider({ children }) {
   const value = useMemo(
     () => ({
       ...state,
+      apiOnline,
       session,
       setSession,
+      signIn,
+      signOut,
+      updatePassword,
       addProduct,
       updateProduct,
       deleteProduct,
@@ -349,6 +633,8 @@ export function DataProvider({ children }) {
       deleteSupplier,
       createOrder,
       setOrderStatus,
+      placeOrder,
+      setCustomerOrderStatus,
       addUser,
       updateUser,
       deleteUser,
@@ -356,7 +642,11 @@ export function DataProvider({ children }) {
     }),
     [
       state,
+      apiOnline,
       session,
+      signIn,
+      signOut,
+      updatePassword,
       addProduct,
       updateProduct,
       deleteProduct,
@@ -366,6 +656,8 @@ export function DataProvider({ children }) {
       deleteSupplier,
       createOrder,
       setOrderStatus,
+      placeOrder,
+      setCustomerOrderStatus,
       addUser,
       updateUser,
       deleteUser,

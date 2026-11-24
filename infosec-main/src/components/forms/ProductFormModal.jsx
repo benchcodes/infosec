@@ -7,7 +7,7 @@ const EMPTY = {
   sku: "",
   category: "",
   supplierId: "",
-  unit: "unit",
+  unit: "meal",
   cost: "",
   price: "",
   quantity: "",
@@ -15,7 +15,7 @@ const EMPTY = {
   location: "",
 };
 
-const UNITS = ["unit", "pc", "box", "set", "pack", "roll", "can", "gal", "pair", "tube"];
+const UNITS = ["meal", "order", "pc", "cup", "box", "pack", "can", "bottle", "pair"];
 
 export default function ProductFormModal({ onClose, product, products, suppliers, onSubmit }) {
   const [form, setForm] = useState(() =>
@@ -88,9 +88,9 @@ export default function ProductFormModal({ onClose, product, products, suppliers
     <Modal
       open
       onClose={onClose}
-      title={product ? "Edit product" : "Add product"}
+      title={product ? "Edit menu item" : "Add menu item"}
       description={
-        product ? "Update the details for this inventory item." : "Create a new item in your catalog."
+        product ? "Update this meal or drink." : "Add a meal, side, or drink to the menu."
       }
       size="lg"
       footer={
@@ -99,7 +99,7 @@ export default function ProductFormModal({ onClose, product, products, suppliers
             Cancel
           </Button>
           <Button type="submit" form="product-form">
-            {product ? "Save changes" : "Create product"}
+            {product ? "Save changes" : "Create menu item"}
           </Button>
         </>
       }
@@ -107,7 +107,7 @@ export default function ProductFormModal({ onClose, product, products, suppliers
       <form id="product-form" onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
         <div className="sm:col-span-2">
           <label className="label" htmlFor="product-name">
-            Product name
+            Meal or item name
           </label>
           <input
             id="product-name"
@@ -115,7 +115,7 @@ export default function ProductFormModal({ onClose, product, products, suppliers
             className={`field ${errors.name ? "field-error" : ""}`}
             value={form.name}
             onChange={update("name")}
-            placeholder="e.g. Cordless Drill 18V"
+            placeholder="e.g. Tapsilog"
           />
           {errors.name && <p className="mt-1 text-xs text-rose-600">{errors.name}</p>}
         </div>
@@ -129,7 +129,7 @@ export default function ProductFormModal({ onClose, product, products, suppliers
             className={`field uppercase ${errors.sku ? "field-error" : ""}`}
             value={form.sku}
             onChange={update("sku")}
-            placeholder="PT-1006"
+            placeholder="SL-1021"
           />
           {errors.sku && <p className="mt-1 text-xs text-rose-600">{errors.sku}</p>}
         </div>
@@ -144,7 +144,7 @@ export default function ProductFormModal({ onClose, product, products, suppliers
             className={`field ${errors.category ? "field-error" : ""}`}
             value={form.category}
             onChange={update("category")}
-            placeholder="Power Tools"
+            placeholder="Beef Silog"
           />
           <datalist id="category-options">
             {categories.map((category) => (
@@ -188,7 +188,7 @@ export default function ProductFormModal({ onClose, product, products, suppliers
           </div>
           <div>
             <label className="label" htmlFor="product-location">
-              Shelf
+              Kitchen station
             </label>
             <input
               id="product-location"

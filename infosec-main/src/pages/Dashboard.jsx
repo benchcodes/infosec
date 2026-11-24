@@ -87,14 +87,14 @@ export default function Dashboard() {
     <div className="space-y-6">
       <PageHeader
         title={`${greeting}, ${firstName}`}
-        description="Here is how CTINASSL's stock is moving today."
+        description="Here is how your silog meals and supplies are moving today."
         actions={
           <>
             <Button variant="secondary" as={Link} to="/reports">
               View reports
             </Button>
             <Button as={Link} to="/products?new=1">
-              <Plus className="h-4 w-4" /> Add product
+              <Plus className="h-4 w-4" /> Add meal
             </Button>
           </>
         }

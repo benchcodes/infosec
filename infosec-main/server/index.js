@@ -10,7 +10,15 @@ if (!MONGO_URI) {
   process.exit(1);
 }
 
-export const COLLECTIONS = ["products", "suppliers", "movements", "orders", "users", "audit"];
+export const COLLECTIONS = [
+  "products",
+  "suppliers",
+  "movements",
+  "orders",
+  "customerOrders",
+  "users",
+  "audit",
+];
 
 const client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
 await client.connect();
@@ -31,15 +39,28 @@ async function replaceCollection(name, rows) {
   const ids = rows.map((row) => row.id);
 
   if (rows.length > 0) {
+    if (name === "users") {
+      for (let index = 0; index < rows.length; index += 1) {
+        const { id, passwordHash: ignoredPasswordHash, ...rest } = rows[index];
+        void ignoredPasswordHash;
+        const existing = await col.findOne({ _id: id }, { projection: { passwordHash: 1 } });
+        const doc = {
+          ...rest,
+          email: typeof rest.email === "string" ? rest.email.trim().toLowerCase() : rest.email,
+          _pos: index,
+        };
+        if (existing?.passwordHash) doc.passwordHash = existing.passwordHash;
+        else doc.passwordHash = await bcrypt.hash(process.env.SEED_DEMO_PASSWORD || "demo1234", 12);
+        await col.updateOne({ _id: id }, { $set: doc }, { upsert: true });
+      }
+    } else {
     const ops = rows.map(({ id, passwordHash, ...rest }, index) => {
       void passwordHash; // never accept hashes from the browser
       const doc = { ...rest, _pos: index };
-      return name === "users"
-        ? // $set keeps the stored passwordHash intact
-          { updateOne: { filter: { _id: id }, update: { $set: doc }, upsert: true } }
-        : { replaceOne: { filter: { _id: id }, replacement: doc, upsert: true } };
+      return { replaceOne: { filter: { _id: id }, replacement: doc, upsert: true } };
     });
     await col.bulkWrite(ops, { ordered: false });
+    }
   }
   await col.deleteMany({ _id: { $nin: ids } });
 }
@@ -84,6 +105,66 @@ app.put("/api/:collection", async (req, res) => {
   res.json({ ok: true, count: req.body.length });
 });
 
+app.post("/api/customer-orders", async (req, res) => {
+  const order = req.body ?? {};
+  if (
+    typeof order.id !== "string" ||
+    typeof order.code !== "string" ||
+    typeof order.userId !== "string" ||
+    !Array.isArray(order.items) ||
+    order.items.length === 0
+  ) {
+    return res.status(400).json({ error: "Invalid customer order." });
+  }
+
+  const existing = await db.collection("customerOrders").findOne({ _id: order.id });
+  if (!existing) {
+    await db.collection("customerOrders").updateOne(
+      { _id: order.id },
+      {
+        $set: {
+          code: order.code,
+          userId: order.userId,
+          userName: order.userName,
+          items: order.items,
+          total: order.total,
+          status: "Pending",
+          note: order.note ?? "",
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+        },
+      },
+      { upsert: true },
+    );
+
+    for (const line of order.items) {
+      await db.collection("products").updateOne(
+        { _id: line.productId },
+        { $inc: { quantity: -Math.abs(Number(line.quantity) || 0) }, $set: { updatedAt: order.updatedAt } },
+      );
+      await db.collection("movements").insertOne({
+        _id: `${order.id}_${line.productId}`,
+        productId: line.productId,
+        type: "out",
+        quantity: Math.abs(Number(line.quantity) || 0),
+        note: `Customer order ${order.code}`,
+        user: order.userName,
+        at: order.createdAt,
+      });
+    }
+
+    await db.collection("audit").insertOne({
+      _id: `a_${order.id}`,
+      actor: order.userName,
+      action: "Placed customer order",
+      detail: `${order.code} — ${order.items.length} line(s)`,
+      at: order.createdAt,
+    });
+  }
+
+  res.json({ ok: true, id: order.id });
+});
+
 app.post("/api/auth/login", async (req, res) => {
   if (throttled(req.ip)) return res.status(429).json({ error: "Too many attempts. Try again in a minute." });
 
@@ -100,6 +181,26 @@ app.post("/api/auth/login", async (req, res) => {
 
   await db.collection("users").updateOne({ _id: user._id }, { $set: { lastActive: new Date().toISOString() } });
   res.json({ name: user.name, email: user.email, role: user.role });
+});
+
+app.post("/api/auth/password", async (req, res) => {
+  const { email, currentPassword, newPassword } = req.body ?? {};
+  if (
+    typeof email !== "string" ||
+    typeof currentPassword !== "string" ||
+    typeof newPassword !== "string" ||
+    newPassword.length < 8
+  ) {
+    return res.status(400).json({ error: "Valid email and passwords are required." });
+  }
+
+  const user = await db.collection("users").findOne({ email: email.trim().toLowerCase() });
+  const ok = user?.passwordHash && (await bcrypt.compare(currentPassword, user.passwordHash));
+  if (!ok) return res.status(401).json({ error: "Current password is incorrect." });
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await db.collection("users").updateOne({ _id: user._id }, { $set: { passwordHash } });
+  res.json({ ok: true });
 });
 
 // eslint-disable-next-line no-unused-vars

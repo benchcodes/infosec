@@ -1,6 +1,7 @@
+// Small CSV helpers used by the export buttons.
 function escapeCell(value) {
   const text = value == null ? "" : String(value);
-  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 export function toCsv(rows) {
@@ -8,7 +9,8 @@ export function toCsv(rows) {
 }
 
 export function downloadCsv(filename, rows) {
-  const blob = new Blob([`\ufeff${toCsv(rows)}`], { type: "text/csv;charset=utf-8;" });
+  // The BOM keeps Excel happy with the peso sign and other Unicode text.
+  const blob = new Blob(["\uFEFF", toCsv(rows)], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

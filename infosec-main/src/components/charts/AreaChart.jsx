@@ -76,11 +76,17 @@ export default function AreaChart({ data = [], height = 260 }) {
                 x2={WIDTH - PADDING.right}
                 y1={y}
                 y2={y}
-                stroke="#e2e8f0"
+                className="stroke-slate-200 dark:stroke-slate-700"
                 strokeDasharray={tick === 0 ? undefined : "3 4"}
                 vectorEffect="non-scaling-stroke"
               />
-              <text x={PADDING.left - 8} y={y + 3} textAnchor="end" fontSize="10" fill="#94a3b8">
+              <text
+                x={PADDING.left - 8}
+                y={y + 3}
+                textAnchor="end"
+                fontSize="10"
+                className="fill-slate-400"
+              >
                 {Math.round(roundedMax * tick)}
               </text>
             </g>
@@ -118,7 +124,7 @@ export default function AreaChart({ data = [], height = 260 }) {
               y={HEIGHT - 8}
               textAnchor="middle"
               fontSize="10"
-              fill="#94a3b8"
+              className="fill-slate-400"
             >
               {item.label}
             </text>

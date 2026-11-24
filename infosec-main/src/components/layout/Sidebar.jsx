@@ -1,19 +1,47 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { LogOut, X } from "lucide-react";
-import { NAV_GROUPS } from "../../lib/nav";
+import { navForRole } from "../../lib/nav";
 import { useData } from "../../lib/data-context";
 import { initials } from "../../lib/format";
+import { isStaff, ROLES } from "../../lib/roles";
 
 export default function Sidebar({ open, onClose }) {
-  const { session, products, orders } = useData();
+  const navigate = useNavigate();
+  const { session, products, orders, customerOrders, signOut } = useData();
 
-  const lowStockCount = products.filter((product) => product.quantity <= product.reorderLevel).length;
-  const pendingOrders = orders.filter((order) => order.status === "Sent" || order.status === "Draft").length;
+  if (!session) return null;
 
-  const counts = {
-    "/products": lowStockCount,
-    "/orders": pendingOrders,
+  const groups = navForRole(session.role);
+  const counts = {};
+
+  if (isStaff(session.role)) {
+    counts["/products"] = products.filter((product) => product.quantity <= product.reorderLevel).length;
+    counts["/order-queue"] = customerOrders.filter((order) => order.status === "Pending").length;
+    counts["/orders"] = orders.filter(
+      (order) => order.status === "Sent" || order.status === "Draft",
+    ).length;
+  } else {
+    counts["/my-orders"] = customerOrders.filter(
+      (order) => order.userId === session.email && order.status !== "Completed" && order.status !== "Cancelled",
+    ).length;
+  }
+
+  const handleSignOut = () => {
+    signOut();
+    onClose?.();
+    navigate("/login", { replace: true });
   };
+
+  const footerNote =
+    session.role === ROLES.USER
+      ? {
+          title: "Order tracking",
+          body: "Follow each order from pending to ready for pickup.",
+        }
+      : {
+          title: "Audit trail active",
+          body: "Every stock change is attributed to a user and timestamped.",
+        };
 
   return (
     <>
@@ -37,10 +65,10 @@ export default function Sidebar({ open, onClose }) {
           <Link to="/" className="flex items-center gap-3" onClick={onClose}>
             <span className="leading-tight">
               <span className="block text-[15px] font-semibold tracking-tight text-white">
-                CulubongAbad
+                Silog Express
               </span>
               <span className="block text-[11px] font-medium tracking-wide text-slate-400">
-                CTINASSL
+                Meal Ordering System
               </span>
             </span>
           </Link>
@@ -56,7 +84,7 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         <nav className="relative flex-1 space-y-6 px-3 pb-4">
-          {NAV_GROUPS.map((group) => (
+          {groups.map((group) => (
             <div key={group.label}>
               <p className="px-3 pb-2 text-[10px] font-semibold tracking-[0.14em] text-slate-500 uppercase">
                 {group.label}
@@ -111,12 +139,8 @@ export default function Sidebar({ open, onClose }) {
 
         <div className="relative px-3 pb-3">
           <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
-            <div className="text-[13px] font-medium text-slate-200">
-              Audit trail active
-            </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
-              Every stock change is attributed to a user and timestamped.
-            </p>
+            <div className="text-[13px] font-medium text-slate-200">{footerNote.title}</div>
+            <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{footerNote.body}</p>
           </div>
         </div>
 
@@ -129,14 +153,15 @@ export default function Sidebar({ open, onClose }) {
               <p className="truncate text-[13px] font-medium text-white">{session.name}</p>
               <p className="truncate text-[11px] text-slate-400">{session.role}</p>
             </div>
-            <Link
-              to="/login"
+            <button
+              type="button"
+              onClick={handleSignOut}
               className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
               aria-label="Sign out"
               title="Sign out"
             >
               <LogOut className="h-4 w-4" />
-            </Link>
+            </button>
           </div>
         </div>
       </aside>

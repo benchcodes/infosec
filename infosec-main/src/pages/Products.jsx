@@ -165,8 +165,8 @@ export default function Products() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Products"
-        description="Manage your catalog, stock levels, and reorder points."
+        title="Silog Menu"
+        description="Manage meals, sides, drinks, stock levels, and reorder points."
         actions={
           <>
             <Button variant="secondary" onClick={exportCsv}>
@@ -178,7 +178,7 @@ export default function Products() {
                 setFormOpenState(true);
               }}
             >
-              <Plus className="h-4 w-4" /> Add product
+              <Plus className="h-4 w-4" /> Add menu item
             </Button>
           </>
         }

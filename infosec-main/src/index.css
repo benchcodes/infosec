@@ -66,6 +66,123 @@
       0 12px 28px -18px rgb(15 23 42 / 0.25);
   }
 
+  @layer components {
+    .dark body {
+      @apply bg-ink-950 text-slate-200;
+    }
+
+    .dark * {
+      scrollbar-color: rgb(51 65 85) transparent;
+    }
+
+    .dark *::-webkit-scrollbar-thumb {
+      background-color: rgb(51 65 85);
+    }
+
+    .dark .card,
+    .dark .card-flat {
+      @apply bg-ink-800 ring-slate-700/80;
+      box-shadow:
+        0 1px 2px rgb(0 0 0 / 0.25),
+        0 16px 32px -20px rgb(0 0 0 / 0.65);
+    }
+
+    .dark .label {
+      @apply text-slate-300;
+    }
+
+    .dark .field {
+      @apply bg-slate-900 text-slate-100 ring-slate-700 placeholder:text-slate-500 hover:ring-slate-600 focus:bg-slate-900 focus:ring-brand-400;
+    }
+
+    .dark .th {
+      @apply text-slate-400;
+    }
+
+    .dark .td {
+      @apply text-slate-300;
+    }
+
+    .dark .bg-white,
+    .dark [class*="bg-white/"] {
+      background-color: rgb(17 26 46);
+    }
+
+    .dark .bg-slate-50,
+    .dark .bg-slate-50\/70,
+    .dark .bg-slate-50\/60,
+    .dark .bg-slate-50\/80 {
+      background-color: rgb(27 39 64);
+    }
+
+    .dark .bg-slate-100,
+    .dark .bg-slate-100\/80,
+    .dark .bg-slate-200 {
+      background-color: rgb(39 53 79);
+    }
+
+    .dark .text-slate-900,
+    .dark .text-slate-800 {
+      color: rgb(241 245 249);
+    }
+
+    .dark .text-slate-700,
+    .dark .text-slate-600 {
+      color: rgb(203 213 225);
+    }
+
+    .dark .text-slate-500,
+    .dark .text-slate-400,
+    .dark .text-slate-300 {
+      color: rgb(148 163 184);
+    }
+
+    .dark .border-slate-100,
+    .dark .border-slate-200,
+    .dark .ring-slate-100,
+    .dark .ring-slate-200,
+    .dark .divide-slate-100,
+    .dark .divide-slate-50 {
+      border-color: rgb(51 65 85);
+    }
+
+    .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+    .dark .divide-slate-50 > :not([hidden]) ~ :not([hidden]) {
+      border-color: rgb(51 65 85);
+    }
+
+    .dark .hover\:bg-slate-50:hover,
+    .dark .hover\:bg-slate-50\/70:hover,
+    .dark .hover\:bg-slate-100:hover,
+    .dark .hover\:bg-slate-200\/70:hover,
+    .dark .hover\:bg-slate-200:hover {
+      background-color: rgb(39 53 79);
+    }
+
+    .dark .bg-emerald-50,
+    .dark .bg-sky-50,
+    .dark .bg-amber-50,
+    .dark .bg-violet-50,
+    .dark .bg-rose-50,
+    .dark .bg-brand-50 {
+      background-color: rgb(30 41 59);
+    }
+
+    .dark .ring-emerald-200,
+    .dark .ring-sky-200,
+    .dark .ring-amber-200,
+    .dark .ring-violet-200,
+    .dark .ring-rose-200,
+    .dark .ring-brand-200 {
+      --tw-ring-color: rgb(51 65 85);
+    }
+
+    .dark select option {
+      background-color: rgb(17 26 46);
+      color: rgb(241 245 249);
+    }
+  }
+
   .card-flat {
     @apply rounded-2xl bg-white ring-1 ring-slate-200/80;
   }
@@ -112,4 +229,213 @@
   .animate-spin {
     animation: none !important;
   }
+}
+
+/* Explicit dark-theme overrides. These run after Tailwind utilities so
+   page components do not retain light backgrounds or text classes. */
+html.dark body {
+  background-color: #070d18 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .card,
+html.dark .card-flat,
+html.dark [class*="rounded"][class*="bg-white"] {
+  background-color: #111a2e !important;
+  border-color: #334155 !important;
+  --tw-ring-color: #334155 !important;
+}
+
+html.dark header[class*="bg-white"],
+html.dark [class*="bg-white/"] {
+  background-color: rgba(17, 26, 46, 0.96) !important;
+  border-color: #334155 !important;
+  --tw-ring-color: #334155 !important;
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/60,
+html.dark .bg-slate-50\/70,
+html.dark .bg-slate-50\/80,
+html.dark .bg-slate-100,
+html.dark .bg-slate-100\/80,
+html.dark .bg-slate-200,
+html.dark .bg-slate-200\/70 {
+  background-color: #27354f !important;
+}
+
+html.dark .bg-white {
+  background-color: #111a2e !important;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-slate-500,
+html.dark .text-slate-400,
+html.dark .text-slate-300 {
+  color: #94a3b8 !important;
+}
+
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-200\/80,
+html.dark .divide-slate-50,
+html.dark .divide-slate-100,
+html.dark [class*="ring-slate-100"],
+html.dark [class*="ring-slate-200"] {
+  border-color: #334155 !important;
+  --tw-ring-color: #334155 !important;
+}
+
+html.dark .divide-slate-50 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #334155 !important;
+}
+
+html.dark .field,
+html.dark input.field,
+html.dark textarea.field,
+html.dark select.field,
+html.dark input[type="search"] {
+  background-color: #1b2740 !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+  --tw-ring-color: #334155;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+html.dark .hover\:bg-slate-50:hover,
+html.dark .hover\:bg-slate-100:hover,
+html.dark .hover\:bg-slate-200:hover,
+html.dark .hover\:bg-slate-200\/70:hover {
+  background-color: #27354f !important;
+}
+
+html.dark select option {
+  background-color: #111a2e;
+  color: #f1f5f9;
+}
+
+/* Accents: keep the brand green and status colors readable on dark surfaces. */
+html.dark .bg-brand-50,
+html.dark .bg-brand-100 {
+  background-color: rgba(16, 185, 129, 0.14) !important;
+}
+
+html.dark .bg-brand-200 {
+  background-color: rgba(16, 185, 129, 0.24) !important;
+}
+
+html.dark .text-brand-700,
+html.dark .text-brand-800 {
+  color: #6ee7b7 !important;
+}
+
+html.dark .ring-brand-200 {
+  --tw-ring-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Status chips: translucent tint instead of a flat slate block. */
+html.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.14) !important;
+}
+
+html.dark .bg-sky-50 {
+  background-color: rgba(14, 165, 233, 0.14) !important;
+}
+
+html.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+}
+
+html.dark .bg-violet-50 {
+  background-color: rgba(139, 92, 246, 0.14) !important;
+}
+
+html.dark .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.14) !important;
+}
+
+html.dark .text-emerald-600,
+html.dark .text-emerald-700 {
+  color: #34d399 !important;
+}
+
+html.dark .text-sky-600,
+html.dark .text-sky-700 {
+  color: #38bdf8 !important;
+}
+
+html.dark .text-violet-600,
+html.dark .text-violet-700 {
+  color: #a78bfa !important;
+}
+
+html.dark .text-amber-600,
+html.dark .text-amber-700 {
+  color: #fbbf24 !important;
+}
+
+html.dark .text-rose-600,
+html.dark .text-rose-700 {
+  color: #fb7185 !important;
+}
+
+html.dark .ring-emerald-200 {
+  --tw-ring-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+html.dark .ring-sky-200 {
+  --tw-ring-color: rgba(14, 165, 233, 0.35) !important;
+}
+
+html.dark .ring-amber-200 {
+  --tw-ring-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+html.dark .ring-violet-200 {
+  --tw-ring-color: rgba(139, 92, 246, 0.35) !important;
+}
+
+html.dark .ring-rose-200 {
+  --tw-ring-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+/* Active tab pills use bg-slate-900, which would vanish on a dark card. */
+html.dark .bg-slate-900 {
+  background-color: #334155 !important;
+}
+
+/* Light avatar gradients become dark slate; colored tiles keep their hue. */
+html.dark [class*="from-slate-1"],
+html.dark [class*="from-slate-2"] {
+  background-image: linear-gradient(135deg, #27354f, #1b2740) !important;
+}
+
+html.dark [class*="bg-slate-200/"] {
+  background-color: #27354f !important;
+}
+
+html.dark [class*="ring-slate-300"] {
+  --tw-ring-color: #334155 !important;
+}
+
+html.dark [class*="border-slate-200"] {
+  border-color: #334155 !important;
+}
+
+html.dark .shadow-brand-900\/20 {
+  --tw-shadow-color: rgb(15 23 42 / 0.35);
 }

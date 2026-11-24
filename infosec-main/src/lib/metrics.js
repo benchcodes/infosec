@@ -17,12 +17,16 @@ export function statusTone(status) {
     case "Active":
     case "Received":
     case "Approved":
+    case "Completed":
       return "emerald";
     case STOCK_STATUS.low:
     case "Draft":
     case "Sent":
     case "Pending":
       return "amber";
+    case "Processing":
+    case "Ready":
+      return "sky";
     case STOCK_STATUS.out:
     case "Suspended":
     case "Cancelled":

@@ -8,7 +8,7 @@ export default function AppLayout() {
   const { pathname } = useLocation();
 
   return (
-    <div className="min-h-svh bg-slate-100">
+    <div className="min-h-svh bg-slate-100 dark:bg-ink-950">
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
 
       <div className="lg:pl-[272px]">

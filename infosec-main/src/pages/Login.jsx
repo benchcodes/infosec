@@ -1,19 +1,46 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
 import { useData } from "../lib/data-context";
 import { useToast } from "../components/ui/toast-context";
-import { login } from "../lib/api";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "../lib/auth";
+import { ROLE_INFO, ROLES } from "../lib/roles";
+
+const ROLE_CARDS = [
+  {
+    role: ROLES.USER,
+    icon: ShoppingBag,
+    blurb: "Browse the menu and place a meal order.",
+    account: DEMO_ACCOUNTS.find((account) => account.role === ROLES.USER),
+  },
+  {
+    role: ROLES.EMPLOYEE,
+    icon: UserRound,
+    blurb: "Manage meals and monitor stock counts.",
+    account: DEMO_ACCOUNTS.find((account) => account.role === ROLES.EMPLOYEE),
+  },
+  {
+    role: ROLES.ADMIN,
+    icon: ShieldCheck,
+    blurb: "Full access to every page.",
+    account: DEMO_ACCOUNTS.find((account) => account.role === ROLES.ADMIN),
+  },
+];
 
 export default function Login() {
   const navigate = useNavigate();
-  const { setSession } = useData();
+  const { session, signIn } = useData();
   const { toast } = useToast();
 
-  const [form, setForm] = useState({ email: "maria.santos@ctinassl.ph", password: "demo1234" });
+  const [form, setForm] = useState({
+    email: DEMO_ACCOUNTS[0].email,
+    password: DEMO_PASSWORD,
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  if (session) return <Navigate to="/" replace />;
 
   const submit = async (event) => {
     event.preventDefault();
@@ -25,17 +52,11 @@ export default function Login() {
 
     setSubmitting(true);
     try {
-      const user = await login(form.email, form.password);
-      setSession(user);
+      const user = await signIn(form.email, form.password);
       toast({ title: "Welcome back", description: `Signed in as ${user.name} · ${user.role}` });
-      navigate("/");
+      navigate("/", { replace: true });
     } catch (error) {
-      const unreachable = error.status === undefined || error.status >= 500;
-      setErrors({
-        password: unreachable
-          ? "Cannot reach the server. Is the API running (npm run server)?"
-          : error.message,
-      });
+      setErrors({ password: error.message ?? "Could not sign in." });
     } finally {
       setSubmitting(false);
     }
@@ -49,26 +70,26 @@ export default function Login() {
 
         <div className="relative flex items-center gap-3">
           <div>
-            <p className="text-[15px] font-semibold tracking-tight">CulubongAbad</p>
-            <p className="text-[11px] tracking-wide text-slate-400">CTINASSL</p>
+            <p className="text-[15px] font-semibold tracking-tight">Silog Express</p>
+            <p className="text-[11px] tracking-wide text-slate-400">Meal Ordering System</p>
           </div>
         </div>
 
         <div className="relative max-w-md">
           <h1 className="text-4xl leading-[1.1] font-semibold tracking-tight">
-            Every unit accounted for.
-            <span className="block text-brand-300">Every change on record.</span>
+            Silog meals made simple.
+            <span className="block text-brand-300">Order, prepare, and serve.</span>
           </h1>
           <p className="mt-4 text-sm leading-relaxed text-slate-400">
-            A small-business inventory workspace with role-based access, reorder alerts, and an
-            audit trail that shows exactly who moved what.
+            Customers browse the silog menu and place orders. Employees manage meals and stock
+            counts. Admins see every order and report.
           </p>
 
           <ul className="mt-8 space-y-3 text-sm text-slate-300">
             {[
-              "Real-time stock levels and reorder points",
-              "Role-based permissions for every action",
-              "Immutable, attributed movement history",
+              "Customers order from the live meal menu",
+              "Employees prepare meals and monitor stock",
+              "Admins manage users, suppliers, and sales reports",
             ].map((item) => (
               <li key={item} className="flex items-start gap-2.5">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-400" />
@@ -78,22 +99,47 @@ export default function Login() {
           </ul>
         </div>
 
-        <div className="relative text-xs text-slate-500">
-          Demo environment — no real company data.
-        </div>
+        <div className="relative text-xs text-slate-500">Demo environment — no real company data.</div>
       </section>
 
       <section className="flex items-center justify-center px-5 py-10 sm:px-10">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden">
-            <p className="text-sm font-semibold tracking-tight text-slate-900">CulubongAbad</p>
-            <p className="text-[11px] text-slate-500">CTINASSL</p>
+            <p className="text-sm font-semibold tracking-tight text-slate-900">Silog Express</p>
+            <p className="text-[11px] text-slate-500">Meal Ordering System</p>
           </div>
 
           <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Sign in</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Use the demo credentials below to explore the workspace.
+            Pick a role to fill in its demo account, or type your own credentials.
           </p>
+
+          <div className="mt-5 grid gap-2 sm:grid-cols-3">
+            {ROLE_CARDS.map((card) => {
+              const Icon = card.icon;
+              const active = form.email === card.account.email;
+              return (
+                <button
+                  key={card.role}
+                  type="button"
+                  onClick={() => {
+                    setForm({ email: card.account.email, password: DEMO_PASSWORD });
+                    setErrors({});
+                  }}
+                  aria-pressed={active}
+                  className={`rounded-xl p-3 text-left ring-1 transition ${
+                    active
+                      ? "bg-brand-50 ring-brand-300"
+                      : "bg-white ring-slate-200 hover:bg-slate-50 hover:ring-slate-300"
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${active ? "text-brand-600" : "text-slate-400"}`} />
+                  <p className="mt-2 text-[13px] font-semibold text-slate-800">{card.role}</p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{card.blurb}</p>
+                </button>
+              );
+            })}
+          </div>
 
           <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
             <div>
@@ -136,30 +182,6 @@ export default function Login() {
               {errors.password && <p className="mt-1 text-xs text-rose-600">{errors.password}</p>}
             </div>
 
-            <div className="flex items-center justify-between text-[13px]">
-              <label className="flex items-center gap-2 text-slate-600">
-                <input
-                  type="checkbox"
-                  defaultChecked
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                />
-                Keep me signed in
-              </label>
-              <button
-                type="button"
-                onClick={() =>
-                  toast({
-                    title: "Password reset",
-                    description: "In production, a reset link would be emailed to you.",
-                    tone: "info",
-                  })
-                }
-                className="font-medium text-brand-700 hover:text-brand-800"
-              >
-                Forgot password?
-              </button>
-            </div>
-
             <button
               type="submit"
               disabled={submitting}
@@ -170,17 +192,19 @@ export default function Login() {
           </form>
 
           <div className="mt-5 rounded-xl bg-slate-200/60 p-3 text-xs leading-relaxed text-slate-600 ring-1 ring-slate-300/50">
-            <p className="font-medium text-slate-700">Demo account</p>
-            <p className="mt-0.5">
-              maria.santos@ctinassl.ph · <span className="font-mono">demo1234</span>
+            <p className="font-medium text-slate-700">Demo accounts · password {DEMO_PASSWORD}</p>
+            <ul className="mt-1 space-y-0.5">
+              {ROLE_CARDS.map((card) => (
+                <li key={card.role} className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-[11px]">{card.account.email}</span>
+                  <span className="text-slate-500">{card.role}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11px] text-slate-500">
+              {ROLE_INFO[ROLES.ADMIN]}
             </p>
           </div>
-
-          <p className="mt-6 text-center text-xs text-slate-400">
-            <Link to="/" className="font-medium text-slate-600 hover:text-brand-700">
-              Skip sign-in and browse the demo
-            </Link>
-          </p>
         </div>
       </section>
     </div>

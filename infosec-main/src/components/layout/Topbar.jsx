@@ -1,36 +1,58 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Bell,
-  ChevronDown,
-  Menu,
-  Search,
-} from "lucide-react";
+import { Bell, ChevronDown, Menu, Moon, Search, Sun } from "lucide-react";
 import { PAGE_TITLES } from "../../lib/nav";
 import { useData } from "../../lib/data-context";
 import { formatDate, initials } from "../../lib/format";
+import { isStaff, ROLE_TONE, ROLES } from "../../lib/roles";
 
 export default function Topbar({ onMenuClick }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { session, products, orders } = useData();
+  const { session, products, customerOrders, signOut, apiOnline } = useData();
   const [query, setQuery] = useState("");
   const [openMenu, setOpenMenu] = useState(null);
+  const [theme, setTheme] = useState(() =>
+    document.documentElement.classList.contains("dark") ? "dark" : "light",
+  );
 
-  const title = PAGE_TITLES[pathname] ?? "CulubongAbad";
+  if (!session) return null;
+
+  const staff = isStaff(session.role);
+  const title = PAGE_TITLES[pathname] ?? "Silog Express";
+
   const lowStock = products.filter((product) => product.quantity <= product.reorderLevel);
-  const pendingOrders = orders.filter((order) => order.status === "Sent" || order.status === "Draft");
-  const alerts = lowStock.length + pendingOrders.length;
+  const myOrders = customerOrders.filter(
+    (order) => order.userId === session.email && order.status !== "Completed" && order.status !== "Cancelled",
+  );
+  const pendingOrders = customerOrders.filter((order) => order.status === "Pending");
+
+  const alerts = staff ? lowStock.length + pendingOrders.length : myOrders.length;
 
   const submitSearch = (event) => {
     event.preventDefault();
     const value = query.trim();
-    navigate(value ? `/products?q=${encodeURIComponent(value)}` : "/products");
+    const base = staff ? "/products" : "/shop";
+    navigate(value ? `${base}?q=${encodeURIComponent(value)}` : base);
     setQuery("");
     setOpenMenu(null);
   };
 
   const toggle = (menu) => setOpenMenu((current) => (current === menu ? null : menu));
+
+  const handleSignOut = () => {
+    setOpenMenu(null);
+    signOut();
+    navigate("/login", { replace: true });
+  };
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.classList.toggle("dark", next === "dark");
+    document.documentElement.style.colorScheme = next;
+    window.localStorage.setItem("stockpilot.theme", next);
+  };
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
@@ -58,14 +80,35 @@ export default function Topbar({ onMenuClick }) {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search products, SKU…"
-              aria-label="Search products"
+              placeholder={staff ? "Search items, SKU…" : "Search items…"}
+              aria-label="Search items"
               className="h-10 w-full rounded-xl bg-slate-100/80 pr-3 pl-9 text-sm text-slate-800 ring-1 ring-transparent transition placeholder:text-slate-400 hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
             />
           </div>
         </form>
 
         <div className="ml-auto flex items-center gap-1.5 md:ml-0">
+          <span
+            className={`hidden items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-medium ring-1 sm:inline-flex ${
+              apiOnline
+                ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                : "bg-rose-50 text-rose-700 ring-rose-200"
+            }`}
+            title={apiOnline ? "Connected to MongoDB" : "MongoDB API unavailable"}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${apiOnline ? "bg-emerald-500" : "bg-rose-500"}`} />
+            {apiOnline ? "Database online" : "Database offline"}
+          </span>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="rounded-xl p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            title={theme === "dark" ? "Light theme" : "Dark theme"}
+          >
+            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+
           <button
             type="button"
             onClick={() => toggle("alerts")}
@@ -115,42 +158,66 @@ export default function Topbar({ onMenuClick }) {
             </span>
           </div>
           <ul className="max-h-80 overflow-y-auto">
-            {lowStock.slice(0, 3).map((product) => (
-              <li key={product.id}>
-                <Link
-                  to="/products?filter=low"
-                  onClick={() => setOpenMenu(null)}
-                  className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-[13px] font-medium text-slate-800">
-                      {product.name}
+            {staff &&
+              lowStock.slice(0, 3).map((product) => (
+                <li key={product.id}>
+                  <Link
+                    to="/products?filter=low"
+                    onClick={() => setOpenMenu(null)}
+                    className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-medium text-slate-800">
+                        {product.name}
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        {product.quantity} {product.unit} left · reorder at {product.reorderLevel}
+                      </span>
                     </span>
-                    <span className="block text-xs text-slate-500">
-                      {product.quantity} {product.unit} left · reorder at {product.reorderLevel}
+                  </Link>
+                </li>
+              ))}
+
+            {staff &&
+              pendingOrders.slice(0, 3).map((order) => (
+                <li key={order.id}>
+                  <Link
+                    to="/order-queue"
+                    onClick={() => setOpenMenu(null)}
+                    className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-medium text-slate-800">
+                        {order.code} from {order.userName}
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        {order.items.length} item{order.items.length === 1 ? "" : "s"} · waiting to be processed
+                      </span>
                     </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-            {pendingOrders.slice(0, 2).map((order) => (
-              <li key={order.id}>
-                <Link
-                  to="/orders"
-                  onClick={() => setOpenMenu(null)}
-                  className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-[13px] font-medium text-slate-800">
-                      {order.code} is {order.status.toLowerCase()}
+                  </Link>
+                </li>
+              ))}
+
+            {!staff &&
+              myOrders.slice(0, 4).map((order) => (
+                <li key={order.id}>
+                  <Link
+                    to="/my-orders"
+                    onClick={() => setOpenMenu(null)}
+                    className="flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-medium text-slate-800">
+                        {order.code} is {order.status.toLowerCase()}
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        {order.items.length} item{order.items.length === 1 ? "" : "s"} · placed {formatDate(order.createdAt)}
+                      </span>
                     </span>
-                    <span className="block text-xs text-slate-500">
-                      {order.items.length} line items · expected {formatDate(order.expectedAt)}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
+                  </Link>
+                </li>
+              ))}
+
             {alerts === 0 && (
               <li className="px-4 py-8 text-center text-sm text-slate-500">You are all caught up.</li>
             )}
@@ -163,32 +230,53 @@ export default function Topbar({ onMenuClick }) {
           <div className="border-b border-slate-100 px-4 py-3">
             <p className="truncate text-sm font-semibold text-slate-900">{session.name}</p>
             <p className="truncate text-xs text-slate-500">{session.email}</p>
-            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 ring-1 ring-brand-200">
+            <span
+              className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${
+                ROLE_TONE[session.role] === "violet"
+                  ? "bg-violet-50 text-violet-700 ring-violet-200"
+                  : ROLE_TONE[session.role] === "sky"
+                    ? "bg-sky-50 text-sky-700 ring-sky-200"
+                    : "bg-slate-100 text-slate-600 ring-slate-200"
+              }`}
+            >
               {session.role}
             </span>
           </div>
           <div className="p-1.5">
-            <Link
-              to="/settings"
-              onClick={() => setOpenMenu(null)}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
-            >
-              Account settings
-            </Link>
-            <Link
-              to="/users"
-              onClick={() => setOpenMenu(null)}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
-            >
-              Users &amp; roles
-            </Link>
-            <Link
-              to="/login"
-              onClick={() => setOpenMenu(null)}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-rose-600 transition hover:bg-rose-50"
+            {session.role === ROLES.USER && (
+              <Link
+                to="/my-orders"
+                onClick={() => setOpenMenu(null)}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+              >
+                My orders
+              </Link>
+            )}
+            {session.role === ROLES.ADMIN && (
+              <>
+                <Link
+                  to="/settings"
+                  onClick={() => setOpenMenu(null)}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+                >
+                  Account settings
+                </Link>
+                <Link
+                  to="/users"
+                  onClick={() => setOpenMenu(null)}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+                >
+                  Users &amp; roles
+                </Link>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50"
             >
               Sign out
-            </Link>
+            </button>
           </div>
         </div>
       )}

@@ -16,7 +16,14 @@ export default function Donut({ segments = [], centerLabel = "Total", centerValu
     <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6">
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
-          <circle cx="70" cy="70" r={radius} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
+          <circle
+            cx="70"
+            cy="70"
+            r={radius}
+            fill="none"
+            className="stroke-slate-100 dark:stroke-slate-800"
+            strokeWidth={stroke}
+          />
           {arcs.map((arc) => {
             const dash = `${Math.max(arc.length - 3, 0)} ${circumference}`;
             return (

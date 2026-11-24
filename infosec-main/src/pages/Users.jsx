@@ -8,29 +8,24 @@ import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { useData } from "../lib/data-context";
 import { useToast } from "../components/ui/toast-context";
 import { initials, relativeTime } from "../lib/format";
+import { ROLE_DESCRIPTION, ROLE_TONE, ROLES as ROLE_VALUES } from "../lib/roles";
 
-const ROLES = ["Administrator", "Manager", "Staff", "Auditor"];
-
-const ROLE_INFO = {
-  Administrator: "Full access, including user management and audit logs.",
-  Manager: "Runs purchasing, suppliers, and catalog changes.",
-  Staff: "Records stock movements and handles counter sales.",
-  Auditor: "Read-only access to inventory records and the audit trail.",
-};
+const ROLES = [ROLE_VALUES.ADMIN, ROLE_VALUES.EMPLOYEE, ROLE_VALUES.USER];
+const ROLE_INFO = ROLE_DESCRIPTION;
 
 const PERMISSIONS = [
-  { capability: "View dashboard and reports", roles: ["Administrator", "Manager", "Staff", "Auditor"] },
-  { capability: "Create and edit products", roles: ["Administrator", "Manager"] },
-  { capability: "Record stock movements", roles: ["Administrator", "Manager", "Staff"] },
-  { capability: "Manage purchase orders", roles: ["Administrator", "Manager"] },
-  { capability: "Manage suppliers", roles: ["Administrator", "Manager"] },
-  { capability: "Delete inventory records", roles: ["Administrator"] },
-  { capability: "View audit trail", roles: ["Administrator", "Auditor"] },
-  { capability: "Manage users and roles", roles: ["Administrator"] },
+  { capability: "Browse items and place orders", roles: [ROLE_VALUES.USER, ROLE_VALUES.ADMIN] },
+  { capability: "Add and edit items", roles: [ROLE_VALUES.ADMIN, ROLE_VALUES.EMPLOYEE] },
+  { capability: "Monitor and adjust stock counts", roles: [ROLE_VALUES.ADMIN, ROLE_VALUES.EMPLOYEE] },
+  { capability: "Process customer orders", roles: [ROLE_VALUES.ADMIN, ROLE_VALUES.EMPLOYEE] },
+  { capability: "Manage purchase orders", roles: [ROLE_VALUES.ADMIN, ROLE_VALUES.EMPLOYEE] },
+  { capability: "Manage suppliers", roles: [ROLE_VALUES.ADMIN] },
+  { capability: "View reports", roles: [ROLE_VALUES.ADMIN] },
+  { capability: "Manage users and roles", roles: [ROLE_VALUES.ADMIN] },
 ];
 
 function InviteModal({ onClose, onInvite }) {
-  const [form, setForm] = useState({ name: "", email: "", role: "Staff" });
+  const [form, setForm] = useState({ name: "", email: "", role: ROLE_VALUES.USER });
   const [errors, setErrors] = useState({});
 
   const submit = (event) => {
@@ -41,7 +36,7 @@ function InviteModal({ onClose, onInvite }) {
     setErrors(next);
     if (Object.keys(next).length > 0) return;
     onInvite({ ...form, name: form.name.trim(), email: form.email.trim() });
-    setForm({ name: "", email: "", role: "Staff" });
+    setForm({ name: "", email: "", role: ROLE_VALUES.USER });
     onClose();
   };
 
@@ -50,7 +45,7 @@ function InviteModal({ onClose, onInvite }) {
       open
       onClose={onClose}
       title="Invite a user"
-      description="They will receive an email invitation with a temporary password."
+      description="The account uses the demo password demo1234 until the password is changed."
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose}>
@@ -121,7 +116,7 @@ export default function Users() {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const roleCounts = useMemo(() => {
-    const map = { Administrator: 0, Manager: 0, Staff: 0, Auditor: 0 };
+    const map = { [ROLE_VALUES.ADMIN]: 0, [ROLE_VALUES.EMPLOYEE]: 0, [ROLE_VALUES.USER]: 0 };
     users.forEach((user) => {
       map[user.role] = (map[user.role] ?? 0) + 1;
     });
@@ -130,7 +125,10 @@ export default function Users() {
 
   const invite = (payload) => {
     addUser({ ...payload, status: "Active", mfa: false, lastActive: new Date().toISOString() });
-    toast({ title: "Invitation sent", description: `${payload.email} · ${payload.role}` });
+    toast({
+      title: "User created",
+      description: `${payload.email} · ${payload.role} · Temporary password: demo1234`,
+    });
   };
 
   const toggleStatus = (user) => {
@@ -147,7 +145,7 @@ export default function Users() {
     <div className="space-y-5">
       <PageHeader
         title="Users & roles"
-        description="Role-based access control for everyone who touches inventory."
+        description="Every account uses one of three roles: Admin, Employee, or User."
         actions={
           <Button onClick={() => setInviteOpen(true)}>Invite user</Button>
         }
@@ -158,7 +156,7 @@ export default function Users() {
           <div key={role} className="card p-4">
             <div className="flex items-center justify-between">
               <p className="text-[13px] font-medium text-slate-600">{role}</p>
-              <Badge tone={role === "Administrator" ? "violet" : role === "Auditor" ? "sky" : "slate"}>
+              <Badge tone={ROLE_TONE[role]}>
                 {roleCounts[role]}
               </Badge>
             </div>
