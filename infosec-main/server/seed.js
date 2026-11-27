@@ -1,9 +1,24 @@
 import "dotenv/config";
+import dns from "node:dns";
 import bcrypt from "bcryptjs";
 import { MongoClient } from "mongodb";
 import { seedState } from "../src/lib/seed.js";
 
-const { MONGO_URI, MONGO_DB = "stockpilot", SEED_DEMO_PASSWORD = "demo1234" } = process.env;
+const {
+  MONGO_URI,
+  MONGO_DB = "stockpilot",
+  MONGO_DNS_SERVERS,
+  SEED_DEMO_PASSWORD = "demo1234",
+} = process.env;
+
+// Honour the same DNS override the API uses for Atlas SRV lookups.
+if (MONGO_DNS_SERVERS !== undefined) {
+  const dnsServers = MONGO_DNS_SERVERS.split(",").map((server) => server.trim());
+  if (dnsServers.some((server) => server.length === 0)) {
+    throw new Error("MONGO_DNS_SERVERS must be a comma-separated list of DNS server IP addresses.");
+  }
+  dns.setServers(dnsServers);
+}
 
 if (!MONGO_URI) {
   console.error("MONGO_URI is not set. Copy .env.example to .env first.");
@@ -34,7 +49,11 @@ try {
   await db.collection("products").createIndex({ sku: 1 });
   await db.collection("movements").createIndex({ productId: 1, at: -1 });
 
-  console.log(`\nSeeded "${MONGO_DB}". Demo login: maria.santos@ctinassl.ph / ${SEED_DEMO_PASSWORD}`);
+  console.log(
+    `\nSeeded "${MONGO_DB}". Demo login: ${
+      seedState.users.find((user) => user.role === "Admin")?.email ?? "admin@ctinassl.ph"
+    } / ${SEED_DEMO_PASSWORD}`,
+  );
 } catch (error) {
   console.error("Seeding failed:", error.message);
   process.exitCode = 1;

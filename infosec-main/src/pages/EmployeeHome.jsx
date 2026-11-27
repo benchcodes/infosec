@@ -14,10 +14,12 @@ import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import ProductFormModal from "../components/forms/ProductFormModal";
 import StockAdjustModal from "../components/forms/StockAdjustModal";
+import CategoryCarousel from "../components/three/CategoryCarousel";
+import Tilt3D from "../components/three/Tilt3D";
 import { useData } from "../lib/data-context";
 import { useToast } from "../components/ui/toast-context";
 import { formatCurrency, formatNumber, relativeTime } from "../lib/format";
-import { productStatus, statusTone } from "../lib/metrics";
+import { categoryBreakdown, productStatus, statusTone } from "../lib/metrics";
 
 export default function EmployeeHome() {
   const {
@@ -45,6 +47,7 @@ export default function EmployeeHome() {
   const outOfStock = products.filter((product) => product.quantity <= 0);
   const totalUnits = products.reduce((sum, product) => sum + product.quantity, 0);
   const pendingOrders = customerOrders.filter((order) => order.status === "Pending");
+  const categories = useMemo(() => categoryBreakdown(products), [products]);
 
   const stats = [
     {
@@ -96,11 +99,13 @@ export default function EmployeeHome() {
         }
       />
 
+      <CategoryCarousel categories={categories} products={products} />
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.label} className="card p-4">
+            <Tilt3D key={stat.label} className="card p-4" intensity={6}>
               <div className="flex items-start justify-between">
                 <p className="text-[11px] font-semibold tracking-[0.08em] text-slate-500 uppercase">
                   {stat.label}
@@ -109,7 +114,7 @@ export default function EmployeeHome() {
               </div>
               <p className="mt-2 text-2xl font-semibold text-slate-900">{stat.value}</p>
               <p className="mt-0.5 text-xs text-slate-400">{stat.hint}</p>
-            </div>
+            </Tilt3D>
           );
         })}
       </div>

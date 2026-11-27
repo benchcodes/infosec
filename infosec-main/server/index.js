@@ -1,9 +1,18 @@
 import "dotenv/config";
+import dns from "node:dns";
 import express from "express";
 import bcrypt from "bcryptjs";
 import { MongoClient } from "mongodb";
 
-const { MONGO_URI, MONGO_DB = "stockpilot", PORT = 4000, HOST = "127.0.0.1" } = process.env;
+const { MONGO_URI, MONGO_DB = "stockpilot", MONGO_DNS_SERVERS, PORT = 4000, HOST = "127.0.0.1" } = process.env;
+
+if (MONGO_DNS_SERVERS !== undefined) {
+  const dnsServers = MONGO_DNS_SERVERS.split(",").map((server) => server.trim());
+  if (dnsServers.some((server) => server.length === 0)) {
+    throw new Error("MONGO_DNS_SERVERS must be a comma-separated list of DNS server IP addresses.");
+  }
+  dns.setServers(dnsServers);
+}
 
 if (!MONGO_URI) {
   console.error("MONGO_URI is not set. Copy .env.example to .env first.");

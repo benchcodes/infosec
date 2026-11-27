@@ -55,7 +55,7 @@ export default function Products() {
   const query = params.get("q") ?? "";
   const statusFilter = params.get("filter") ?? "all";
 
-  const [category, setCategory] = useState("all");
+  const [category, setCategory] = useState(params.get("category") ?? "all");
   const [sort, setSort] = useState("name");
   const [page, setPage] = useState(1);
 

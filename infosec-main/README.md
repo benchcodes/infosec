@@ -20,6 +20,9 @@ Replace `YOUR_ATLAS_USERNAME` and `YOUR_ATLAS_PASSWORD`. If the password contain
 reserved URL characters, URL-encode them (for example, `+` becomes `%2B`).
 Do not commit real credentials to source control.
 
+If Node reports `querySrv ECONNREFUSED`, you can set `MONGO_DNS_SERVERS` in `.env`
+to a comma-separated list of DNS server IP addresses configured for your network.
+
 Open Windows PowerShell in the project folder by running:
 
 ```powershell
@@ -54,10 +57,11 @@ npm run dev
 
 Open the address printed by Vite, normally `http://127.0.0.1:5173/`.
 
-Demo login:
+Demo logins (password `demo1234` for all):
 
-- Email: `maria.santos@ctinassl.ph`
-- Password: `demo1234`
+- Admin: Florencio Contreras, `admin@ctinassl.ph`
+- Employee: Bench Culubong, `employee@ctinassl.ph`
+- User: Lawrence Abad, `user@ctinassl.ph`
 
 (the login page has a Show/Hide password eye icon).
 

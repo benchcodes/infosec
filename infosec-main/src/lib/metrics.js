@@ -124,6 +124,58 @@ export function countPendingOrders(orders) {
   return orders.filter((order) => order.status === "Sent" || order.status === "Draft").length;
 }
 
+// Meal sales summary for the admin dashboard. Revenue only counts completed
+// orders, while the top-meal list uses every order that was not cancelled.
+export function mealSalesSummary(customerOrders = [], days = 7) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const since = new Date(today);
+  since.setDate(since.getDate() - (days - 1));
+
+  const windowOrders = customerOrders.filter((order) => {
+    const at = new Date(order.createdAt);
+    return !Number.isNaN(at.getTime()) && at >= since;
+  });
+  const billable = windowOrders.filter((order) => order.status !== "Cancelled");
+  const completed = windowOrders.filter((order) => order.status === "Completed");
+
+  const revenue = completed.reduce((total, order) => total + (Number(order.total) || 0), 0);
+  const orderValue = billable.reduce((total, order) => total + (Number(order.total) || 0), 0);
+
+  const meals = new Map();
+  billable.forEach((order) => {
+    (order.items ?? []).forEach((line) => {
+      const current = meals.get(line.productId) ?? {
+        id: line.productId,
+        name: line.name,
+        units: 0,
+        revenue: 0,
+      };
+      const quantity = Number(line.quantity) || 0;
+      current.units += quantity;
+      current.revenue += quantity * (Number(line.price) || 0);
+      meals.set(line.productId, current);
+    });
+  });
+
+  return {
+    revenue,
+    completedCount: completed.length,
+    placedCount: billable.length,
+    openCount: customerOrders.filter((order) =>
+      ["Pending", "Processing", "Ready"].includes(order.status),
+    ).length,
+    todayCount: customerOrders.filter((order) => {
+      const at = new Date(order.createdAt);
+      return !Number.isNaN(at.getTime()) && at >= today && order.status !== "Cancelled";
+    }).length,
+    averageOrder: billable.length ? orderValue / billable.length : 0,
+    topMeals: [...meals.values()]
+      .sort((a, b) => b.units - a.units || b.revenue - a.revenue)
+      .slice(0, 3),
+  };
+}
+
 export function nextCode(prefix, existing, pad = 3) {
   const numbers = existing
     .map((value) => Number.parseInt(String(value).split("-").pop(), 10))

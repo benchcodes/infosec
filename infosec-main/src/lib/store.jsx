@@ -17,6 +17,12 @@ const COLLECTIONS = [
   "audit",
 ];
 
+// Arrays are re-created on every read, so compare their contents instead of
+// their references. This keeps the API quiet and prevents write/read races.
+function sameRows(a, b) {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
 function cleanState(parsed) {
   const silogProducts = Array.isArray(parsed?.products)
     ? parsed.products.filter(
@@ -111,6 +117,8 @@ export function DataProvider({ children }) {
 
   // MongoDB is the source of truth when the API is reachable; localStorage stays as an offline cache.
   const [apiOnline, setApiOnline] = useState(false);
+  // Bumped after every successful read so the save effect re-checks its diff.
+  const [syncTick, setSyncTick] = useState(0);
   const lastPushed = useRef(null);
   const pendingPushes = useRef(new Set());
   const failedPushes = useRef(new Map());
@@ -127,10 +135,41 @@ export function DataProvider({ children }) {
           setApiOnline(true);
 
           const recentlyMutated = Date.now() - lastMutatedAt.current < 3500;
-          if (pendingPushes.current.size === 0 && !recentlyMutated) {
-            lastPushed.current = remote;
+          const busy = pendingPushes.current.size > 0 || failedPushes.current.size > 0;
+
+          // An in-flight save owns the snapshot; leave it alone.
+          if (busy) return;
+
+          const previous = lastPushed.current;
+          lastPushed.current = remote;
+          setSyncTick((value) => value + 1);
+
+          // Keep fresh local edits. The save effect will upload the differences.
+          if (recentlyMutated) return;
+
+          if (!previous) {
+            // Fresh start: MongoDB wins over a possibly stale local cache.
             setState((current) => cleanState({ ...current, ...remote }));
+            return;
           }
+
+          // Merge per collection. A collection this browser edited since the
+          // last sync is kept and uploaded; everything else follows MongoDB,
+          // so another user's new meal shows up here without a reload.
+          setState((current) => {
+            const clean = cleanState({ ...current, ...remote });
+            const next = { ...current };
+            let adopted = false;
+
+            for (const name of COLLECTIONS) {
+              const editedLocally = !sameRows(current[name], previous[name]);
+              if (editedLocally) continue;
+              if (!sameRows(current[name], clean[name])) adopted = true;
+              next[name] = clean[name];
+            }
+
+            return adopted ? next : current;
+          });
         })
         .catch(() => {
           /* API offline — keep working from the local cache and retry */
@@ -155,7 +194,7 @@ export function DataProvider({ children }) {
     }
 
     if (!apiOnline || !lastPushed.current) return undefined;
-    const changed = COLLECTIONS.filter((name) => state[name] !== lastPushed.current[name]);
+    const changed = COLLECTIONS.filter((name) => !sameRows(state[name], lastPushed.current[name]));
     if (changed.length === 0) return undefined;
 
     const timer = setTimeout(() => {
@@ -176,7 +215,7 @@ export function DataProvider({ children }) {
       }
     }, 400);
     return () => clearTimeout(timer);
-  }, [state, apiOnline]);
+  }, [state, apiOnline, syncTick]);
 
   useEffect(() => {
     if (!apiOnline) return undefined;
@@ -216,20 +255,17 @@ export function DataProvider({ children }) {
   }, []);
 
   const signIn = useCallback(async (email, password) => {
-    try {
-      const user = await login(email, password);
-      setSession(user);
-      return user;
-    } catch (error) {
-      if (error.status) throw error;
-      // Offline demo fallback only; MongoDB-backed accounts require the API.
-      const demo = localLogin(email, password);
-      if (demo) {
-        setSession(demo);
-        return demo;
-      }
-      throw error;
+    // Demo accounts always resolve locally so a classroom demo is never blocked
+    // by the state of the MongoDB users collection.
+    const demo = localLogin(email, password);
+    if (demo) {
+      setSession(demo);
+      return demo;
     }
+
+    const user = await login(email, password);
+    setSession(user);
+    return user;
   }, []);
 
   const updatePassword = useCallback(

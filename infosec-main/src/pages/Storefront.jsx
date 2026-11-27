@@ -13,19 +13,13 @@ import PageHeader from "../components/ui/PageHeader";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import EmptyState from "../components/ui/EmptyState";
+import ProductOrbit from "../components/three/ProductOrbit";
+import Tilt3D from "../components/three/Tilt3D";
 import { useData } from "../lib/data-context";
 import { useToast } from "../components/ui/toast-context";
 import { formatCurrency, formatNumber } from "../lib/format";
 import { productStatus, statusTone } from "../lib/metrics";
-
-const TILE_COLORS = [
-  "from-emerald-400 to-teal-600",
-  "from-sky-400 to-blue-600",
-  "from-amber-400 to-orange-600",
-  "from-violet-400 to-purple-600",
-  "from-rose-400 to-pink-600",
-  "from-cyan-400 to-sky-600",
-];
+import { toneFor } from "../lib/palette";
 
 const SORT_OPTIONS = [
   { value: "featured", label: "Featured" },
@@ -33,12 +27,6 @@ const SORT_OPTIONS = [
   { value: "price-desc", label: "Price: high to low" },
   { value: "name", label: "Name A–Z" },
 ];
-
-function colorFor(value = "") {
-  let total = 0;
-  for (let index = 0; index < value.length; index += 1) total += value.charCodeAt(index);
-  return TILE_COLORS[total % TILE_COLORS.length];
-}
 
 function readSavedCart(key) {
   try {
@@ -182,8 +170,21 @@ export default function Storefront() {
         }
       />
 
+      <ProductOrbit
+        products={products}
+        cart={cart}
+        onAdd={addToCart}
+        onBrowse={(category) => {
+          setTerm("");
+          setCategory(category);
+          document
+            .getElementById("menu-catalog")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
+
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="space-y-4">
+        <section id="menu-catalog" className="scroll-mt-24 space-y-4">
           <div className="card p-4">
             <div className="relative">
               <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -280,9 +281,14 @@ export default function Storefront() {
                 const out = product.quantity <= 0;
                 const inCart = cart[product.id] ?? 0;
                 return (
-                  <article key={product.id} className="card flex flex-col overflow-hidden">
+                  <Tilt3D
+                    as="article"
+                    key={product.id}
+                    intensity={5}
+                    className="card flex flex-col overflow-hidden"
+                  >
                     <div
-                      className={`flex h-28 items-center justify-between bg-gradient-to-br px-4 text-white ${colorFor(
+                      className={`flex h-28 items-center justify-between bg-gradient-to-br px-4 text-white ${toneFor(
                         product.category,
                       )}`}
                     >
@@ -340,7 +346,7 @@ export default function Storefront() {
                         )}
                       </div>
                     </div>
-                  </article>
+                  </Tilt3D>
                 );
               })}
             </div>

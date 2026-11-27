@@ -32,7 +32,7 @@ export const seedSuppliers = rawSuppliers.map(
 );
 
 const rawProducts = [
-  ["SL-1001", "Tapsilog", "Beef Silog", "s3", 95, 145, 42, 15, "meal", "A1-01"],
+  ["SL-1001", "Tapsilog", "Beef Silog", "s3", 95, 145, 6, 10, "meal", "A1-01"],
   ["SL-1002", "Tocilog", "Pork Silog", "s3", 80, 125, 36, 15, "meal", "A1-02"],
   ["SL-1003", "Longsilog", "Pork Silog", "s3", 78, 120, 28, 12, "meal", "A1-03"],
   ["SL-1004", "Chicksilog", "Chicken Silog", "s1", 82, 130, 34, 15, "meal", "A1-04"],
@@ -75,34 +75,34 @@ export const seedProducts = rawProducts.map(
 
 const movementPlan = [
   [0, "p6", "out", 12, "Counter sale — Lunch order #4821", "Ana Villanueva", 10, 24],
-  [0, "p11", "out", 30, "Counter sale — Meal order #4822", "Kevin Ramos", 11, 5],
-  [0, "p5", "in", 30, "Fresh delivery from Fresh Catch Seafood", "Jomar Dela Cruz", 8, 40],
+  [0, "p11", "out", 30, "Counter sale — Meal order #4822", "Lawrence Abad", 11, 5],
+  [0, "p5", "in", 30, "Fresh delivery from Fresh Catch Seafood", "Bench Culubong", 8, 40],
   [0, "p1", "out", 3, "Released for breakfast service", "Ana Villanueva", 13, 15],
-  [1, "p15", "in", 12, "Restock — PO-2026-018", "Jomar Dela Cruz", 9, 20],
-  [1, "p20", "out", 40, "Counter sale — Meal order #4814", "Kevin Ramos", 14, 45],
+  [1, "p15", "in", 12, "Restock — PO-2026-018", "Bench Culubong", 9, 20],
+  [1, "p20", "out", 40, "Counter sale — Meal order #4814", "Lawrence Abad", 14, 45],
   [1, "p9", "out", 8, "Counter sale — Meal order #4815", "Ana Villanueva", 15, 10],
   [2, "p3", "adjust", 2, "Cycle count variance — station A1-05", "Liza Fernandez", 16, 30],
-  [2, "p17", "out", 6, "Counter sale — Meal order #4808", "Kevin Ramos", 11, 50],
-  [2, "p11", "in", 12, "Fresh poultry delivery", "Jomar Dela Cruz", 10, 15],
-  [3, "p11", "in", 200, "Bulk restock — PO-2026-016", "Jomar Dela Cruz", 9, 5],
+  [2, "p17", "out", 6, "Counter sale — Meal order #4808", "Lawrence Abad", 11, 50],
+  [2, "p11", "in", 12, "Fresh poultry delivery", "Bench Culubong", 10, 15],
+  [3, "p11", "in", 200, "Bulk restock — PO-2026-016", "Bench Culubong", 9, 5],
   [3, "p2", "out", 4, "Counter sale — Meal order #4801", "Ana Villanueva", 13, 20],
-  [3, "p16", "out", 10, "Breakfast set released to kitchen", "Kevin Ramos", 16, 5],
+  [3, "p16", "out", 10, "Breakfast set released to kitchen", "Lawrence Abad", 16, 5],
   [4, "p9", "out", 5, "Counter sale — Order #4795", "Ana Villanueva", 12, 25],
-  [4, "p13", "out", 11, "Counter sale — Meal order #4796", "Kevin Ramos", 14, 40],
-  [4, "p16", "in", 24, "Egg and rice delivery", "Jomar Dela Cruz", 9, 15],
+  [4, "p13", "out", 11, "Counter sale — Meal order #4796", "Lawrence Abad", 14, 40],
+  [4, "p16", "in", 24, "Egg and rice delivery", "Bench Culubong", 9, 15],
   [5, "p1", "out", 5, "Counter sale — Meal order #4788", "Ana Villanueva", 11, 10],
-  [5, "p12", "out", 6, "Counter sale — Order #4789", "Kevin Ramos", 15, 30],
-  [5, "p14", "in", 100, "Restock — PO-2026-014", "Jomar Dela Cruz", 8, 50],
+  [5, "p12", "out", 6, "Counter sale — Order #4789", "Lawrence Abad", 15, 30],
+  [5, "p14", "in", 100, "Restock — PO-2026-014", "Bench Culubong", 8, 50],
   [5, "p5", "out", 2, "Kitchen waste adjustment", "Ana Villanueva", 17, 20],
-  [6, "p7", "out", 6, "Counter sale — Meal order #4781", "Kevin Ramos", 10, 45],
+  [6, "p7", "out", 6, "Counter sale — Meal order #4781", "Lawrence Abad", 10, 45],
   [6, "p15", "out", 14, "Lunch rush meal release", "Ana Villanueva", 13, 20],
-  [6, "p18", "in", 40, "Delivery from Lutong Bahay Poultry", "Jomar Dela Cruz", 9, 30],
-  [7, "p12", "out", 10, "Counter sale — Meal order #4775", "Kevin Ramos", 11, 55],
+  [6, "p18", "in", 40, "Delivery from Lutong Bahay Poultry", "Bench Culubong", 9, 30],
+  [7, "p12", "out", 10, "Counter sale — Meal order #4775", "Lawrence Abad", 11, 55],
   [7, "p4", "adjust", -1, "Spoilage — written off", "Liza Fernandez", 15, 20],
-  [7, "p17", "in", 30, "Garlic rice restock", "Jomar Dela Cruz", 8, 25],
+  [7, "p17", "in", 30, "Garlic rice restock", "Bench Culubong", 8, 25],
   [8, "p10", "out", 3, "Counter sale — Meal order #4768", "Ana Villanueva", 12, 35],
-  [8, "p13", "out", 25, "Bulk daingsilog order", "Kevin Ramos", 14, 10],
-  [9, "p20", "in", 20, "Calamansi juice restock", "Jomar Dela Cruz", 9, 45],
+  [8, "p13", "out", 25, "Bulk daingsilog order", "Lawrence Abad", 14, 10],
+  [9, "p20", "in", 20, "Calamansi juice restock", "Bench Culubong", 9, 45],
   [9, "p8", "out", 4, "Counter sale — Meal order #4760", "Ana Villanueva", 16, 25],
 ];
 
@@ -142,7 +142,7 @@ export const seedOrders = rawOrders.map(([code, supplierId, status, created, exp
 export const seedUsers = [
   {
     id: "u1",
-    name: "Maria Santos",
+    name: "Florencio Contreras",
     email: "admin@ctinassl.ph",
     role: "Admin",
     status: "Active",
@@ -151,7 +151,7 @@ export const seedUsers = [
   },
   {
     id: "u2",
-    name: "Jomar Dela Cruz",
+    name: "Bench Culubong",
     email: "employee@ctinassl.ph",
     role: "Employee",
     status: "Active",
@@ -169,7 +169,7 @@ export const seedUsers = [
   },
   {
     id: "u4",
-    name: "Kevin Ramos",
+    name: "Lawrence Abad",
     email: "user@ctinassl.ph",
     role: "User",
     status: "Active",
@@ -198,10 +198,10 @@ export const seedUsers = [
 
 // Customer orders placed from the shop by Users.
 const rawCustomerOrders = [
-  ["SO-2026-001", "user@ctinassl.ph", "Kevin Ramos", "Pending", 0, 9, 20, "", [["p6", 2, 115]]],
-  ["SO-2026-002", "user@ctinassl.ph", "Kevin Ramos", "Processing", 1, 14, 10, "Please call before delivery.", [["p5", 4, 135]]],
+  ["SO-2026-001", "user@ctinassl.ph", "Lawrence Abad", "Pending", 0, 9, 20, "", [["p6", 2, 115]]],
+  ["SO-2026-002", "user@ctinassl.ph", "Lawrence Abad", "Processing", 1, 14, 10, "Please call before delivery.", [["p5", 4, 135]]],
   ["SO-2026-003", "liza.fernandez@ctinassl.ph", "Liza Fernandez", "Ready", 2, 11, 5, "", [["p16", 1, 70]]],
-  ["SO-2026-004", "user@ctinassl.ph", "Kevin Ramos", "Completed", 5, 10, 30, "Pick up at counter.", [["p1", 1, 145]]],
+  ["SO-2026-004", "user@ctinassl.ph", "Lawrence Abad", "Completed", 5, 10, 30, "Pick up at counter.", [["p1", 1, 145]]],
   ["SO-2026-005", "liza.fernandez@ctinassl.ph", "Liza Fernandez", "Cancelled", 3, 16, 0, "", [["p9", 2, 145]]],
 ];
 
@@ -229,14 +229,14 @@ export const seedCustomerOrders = rawCustomerOrders.map(
 );
 
 export const seedAudit = [
-  ["Maria Santos", "Updated role permissions", "Admin — purchase order approval"],
-  ["Jomar Dela Cruz", "Received purchase order", "PO-2026-018"],
+  ["Florencio Contreras", "Updated role permissions", "Admin — purchase order approval"],
+  ["Bench Culubong", "Received purchase order", "PO-2026-018"],
   ["Liza Fernandez", "Ran inventory variance report", "August cycle count"],
   ["Ana Villanueva", "Recorded stock movement", "PT-1001 — 3 units out"],
-  ["Maria Santos", "Suspended user account", "Paolo Reyes"],
-  ["Jomar Dela Cruz", "Created purchase order", "PO-2026-019"],
-  ["Kevin Ramos", "Recorded stock movement", "EL-6003 — 25 units out"],
-  ["Maria Santos", "Enabled two-factor authentication", "Own account"],
+  ["Florencio Contreras", "Suspended user account", "Paolo Reyes"],
+  ["Bench Culubong", "Created purchase order", "PO-2026-019"],
+  ["Lawrence Abad", "Recorded stock movement", "EL-6003 — 25 units out"],
+  ["Florencio Contreras", "Enabled two-factor authentication", "Own account"],
 ].map(([actor, action, detail], index) => ({
   id: `a${index + 1}`,
   actor,
